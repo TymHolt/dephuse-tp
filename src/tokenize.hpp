@@ -10,7 +10,7 @@ namespace pas {
     enum TokenType {
         PAS_T_STREAM_END,
 
-        PAS_T_IDENTIFIER,    // 
+        PAS_T_IDENTIFIER,    // ...
 
         // Values
         PAS_T_V_STRING,      // '...'
@@ -18,11 +18,11 @@ namespace pas {
         // Keywords
         PAS_T_KW_PROGRAM,    // program
         PAS_T_KW_BEGIN,      // begin
-        PAS_T_KW_END, // end.
+        PAS_T_KW_END,        // end
 
         // Controls
-        PAS_T_PERIOD,
-        PAS_T_SEMICOLON,
+        PAS_T_PERIOD,        // .
+        PAS_T_SEMICOLON,     // ;
         PAS_T_PARENT_OPEN,   // (
         PAS_T_PARENT_CLOSE   // )    
     };
@@ -30,21 +30,14 @@ namespace pas {
     class Token {
         private:
             TokenType m_type;
-        public:
-            Token(TokenType type);
-            virtual ~Token() {
-
-            }
-            TokenType getType();
-    };
-
-    class StringValueToken : public Token {
-        private:
             std::string m_value;
+            pas::SourcePos m_srcPos;
 
         public:
-            StringValueToken(TokenType type, std::string value);
+            Token(TokenType type, std::string value, pas::SourcePos srcPos);
+            TokenType getType();
             std::string getValue();
+            pas::SourcePos getSourcePos();
     };
 
     class TokenStream {
@@ -59,6 +52,7 @@ namespace pas {
             void toNext();
             Token *getCurrent();
             bool hasEnded();
+            void escalateError(std::string msg);
     };
 }
 

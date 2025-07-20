@@ -6,13 +6,16 @@
 
 namespace pas {
 
+    typedef struct SourcePos_Struct {
+        uint m_line;
+        uint m_column;
+    } SourcePos;
+
     class SourceFile {
         private:
             std::ifstream& m_srcFileStream;
-            uint m_line;
-            uint m_column;
-
-            std::string getPosString();
+            SourcePos m_currentPos;
+            std::string m_lineBuffer;
 
         public:
             SourceFile(std::ifstream& srcFileStream);
@@ -20,8 +23,10 @@ namespace pas {
             char getCurrent();
             void toNext();
             bool hasEnded();
+            SourcePos getCurrentPos();
     };
 
+    std::string getPosString(pas::SourcePos pos);
 }
 
 #endif

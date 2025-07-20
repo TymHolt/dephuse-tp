@@ -2,6 +2,7 @@
 #include <fstream>
 #include "source.hpp"
 #include "tokenize.hpp"
+#include "parse.hpp"
 
 int main(int argc, char **argv) {
     if (argc < 2) {
@@ -22,19 +23,13 @@ int main(int argc, char **argv) {
         pas::TokenStream *tokenStream = new pas::TokenStream(srcFile);
 
         try {
-            while (!tokenStream->hasEnded()) {
+            /*while (!tokenStream->hasEnded()) {
                 pas::Token *token = tokenStream->getCurrent();
-
-                if (token->getType() == pas::PAS_T_V_STRING || token->getType() == pas::PAS_T_IDENTIFIER) {
-                    pas::StringValueToken *svToken = dynamic_cast<pas::StringValueToken *>(token);
-                    std::cout << svToken->getValue() << std::endl;    
-                } else {
-                    std::cout << "Non-String token" << std::endl;
-                }
-
+                std::cout << token->getValue() << std::endl;
                 tokenStream->toNext();
-            }
+            }*/
 
+            pas::parse(tokenStream);
         } catch (const std::runtime_error& ex) {
             std::cout << "Source file: " << srcFileName << std::endl;
             std::cout << ex.what() << std::endl;

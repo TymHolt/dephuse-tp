@@ -1,7 +1,9 @@
 #include "tokenize.hpp"
 
-pas::Token::Token(pas::TokenType type)
-    : m_type(type){
+pas::Token::Token(pas::TokenType type, std::string value, pas::SourcePos srcPos)
+    : m_type(type) 
+    , m_value(value)
+    , m_srcPos(srcPos) {
 
 }
 
@@ -9,19 +11,17 @@ pas::TokenType pas::Token::getType() {
     return m_type;
 }
 
-pas::StringValueToken::StringValueToken(pas::TokenType type, std::string value)
-    : Token(type)
-    , m_value(value) {
-
+std::string pas::Token::getValue() {
+    return m_value;
 }
 
-std::string pas::StringValueToken::getValue() {
-    return m_value;
+pas::SourcePos pas::Token::getSourcePos() {
+    return m_srcPos;
 }
 
 pas::TokenStream::TokenStream(pas::SourceFile& srcFile) 
     : m_srcFile(srcFile)
-    , m_current(new pas::Token(PAS_T_STREAM_END)) {
+    , m_current(new pas::Token(PAS_T_STREAM_END, "", {0, 0})) {
     toNext();
 }
 
@@ -62,29 +62,32 @@ void pas::TokenStream::toNext() {
 
     TokenizeState state = SEARCHING;
     std::string valueBuffer = "";
+    SourcePos tokenPos = {0, 0};
 
     while (!m_srcFile.hasEnded()) {
         char c = m_srcFile.getCurrent();
 
         switch (state) {
             case SEARCHING:
+                tokenPos = m_srcFile.getCurrentPos();
+
                 if (isAlpha(c)) {
                     state = READING_WORD;
                     valueBuffer += c;
                 } else if (c == '.') {
-                    m_current = new pas::Token(PAS_T_PERIOD);
+                    m_current = new pas::Token(PAS_T_PERIOD, ".", tokenPos);
                     m_srcFile.toNext(); // Consume read char
                     return;
                 } else if (c == ';') {
-                    m_current = new pas::Token(PAS_T_SEMICOLON);
+                    m_current = new pas::Token(PAS_T_SEMICOLON, ";", tokenPos);
                     m_srcFile.toNext(); // Consume read char
                     return;
                 } else if (c == '(') {
-                    m_current = new pas::Token(PAS_T_PARENT_OPEN);
+                    m_current = new pas::Token(PAS_T_PARENT_OPEN, "(", tokenPos);
                     m_srcFile.toNext(); // Consume read char
                     return;
                 } else if (c == ')') {
-                    m_current = new pas::Token(PAS_T_PARENT_CLOSE);
+                    m_current = new pas::Token(PAS_T_PARENT_CLOSE, ")", tokenPos);
                     m_srcFile.toNext(); // Consume read char
                     return;        
                 } else if (c == '\'') {
@@ -97,7 +100,17 @@ void pas::TokenStream::toNext() {
 
             case READING_WORD:                
                 if (!isAlphaNum(c)) {
-                    m_current = new pas::StringValueToken(PAS_T_IDENTIFIER, valueBuffer);
+                    // TODO Make not case sensitive
+                    if (valueBuffer == "program") {
+                        m_current = new pas::Token(PAS_T_KW_PROGRAM, valueBuffer, tokenPos);
+                    } else if (valueBuffer == "begin") {
+                        m_current = new pas::Token(PAS_T_KW_BEGIN, valueBuffer, tokenPos);
+                    } else if (valueBuffer == "end") {
+                        m_current = new pas::Token(PAS_T_KW_END, valueBuffer, tokenPos);
+                    } else {
+                        m_current = new pas::Token(PAS_T_IDENTIFIER, valueBuffer, tokenPos);
+                    }
+
                     return;
                 }
 
@@ -107,7 +120,7 @@ void pas::TokenStream::toNext() {
             case READING_STRING:
                 if (c == '\'') {
                     m_srcFile.toNext(); // The ' should not be read again
-                    m_current = new pas::StringValueToken(PAS_T_V_STRING, valueBuffer);
+                    m_current = new pas::Token(PAS_T_V_STRING, valueBuffer, tokenPos);
                     return;
                 } else if (c == '\\') {
                     state = READING_STRING_ESCAPED;
@@ -142,7 +155,7 @@ void pas::TokenStream::toNext() {
     }
 
     if (state == READING_WORD) {
-        m_current = new pas::StringValueToken(PAS_T_V_STRING, valueBuffer);
+        m_current = new pas::Token(PAS_T_V_STRING, valueBuffer, tokenPos);
         return;
     }
 
@@ -150,7 +163,7 @@ void pas::TokenStream::toNext() {
         m_srcFile.escalateError("String not closed");
     }
 
-    m_current = new pas::Token(PAS_T_STREAM_END);
+    m_current = new pas::Token(PAS_T_STREAM_END, "", {0, 0});
 }
 
 pas::Token *pas::TokenStream::getCurrent() {
@@ -162,4 +175,9 @@ pas::Token *pas::TokenStream::getCurrent() {
 
 bool pas::TokenStream::hasEnded() {
     return m_current->getType() == PAS_T_STREAM_END;
+}
+
+void pas::TokenStream::escalateError(std::string msg) {
+    throw std::runtime_error(std::string("ERROR ") + getPosString(m_current->getSourcePos()) +
+        std::string(" -> ") + msg);
 }
