@@ -26,13 +26,9 @@ pas::TokenStream::TokenStream(pas::SourceFile& srcFile)
 }
 
 pas::TokenStream::~TokenStream() {
-    delete m_current;
+    if (m_current != 0)
+        delete m_current;
 }
-
-enum TokenizeState {
-    SEARCHING,
-    READING_VALUE
-};
 
 bool isAlpha(char c) {
     return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || c == '_';
@@ -46,50 +42,121 @@ bool isAlphaNum(char c) {
     return isAlpha(c) || isNum(c);
 }
 
+bool isWhitespace(char c) {
+    return c == ' ' || c == '\t' || c == '\r' || c == '\n';
+}
+
+// TODO Make state to class, method to handle char.
+// toNext() is already too big
+enum TokenizeState {
+    SEARCHING,
+    READING_WORD,
+    READING_STRING,
+    READING_STRING_ESCAPED
+};
+
 void pas::TokenStream::toNext() {
+    m_currentInitialized = true;
     delete m_current;
+    m_current = 0;
 
     TokenizeState state = SEARCHING;
     std::string valueBuffer = "";
 
-    Outer:
     while (!m_srcFile.hasEnded()) {
         char c = m_srcFile.getCurrent();
 
         switch (state) {
             case SEARCHING:
                 if (isAlpha(c)) {
-                    state = READING_VALUE;
+                    state = READING_WORD;
                     valueBuffer += c;
-                }
+                } else if (c == '.') {
+                    m_current = new pas::Token(PAS_T_PERIOD);
+                    m_srcFile.toNext(); // Consume read char
+                    return;
+                } else if (c == ';') {
+                    m_current = new pas::Token(PAS_T_SEMICOLON);
+                    m_srcFile.toNext(); // Consume read char
+                    return;
+                } else if (c == '(') {
+                    m_current = new pas::Token(PAS_T_PARENT_OPEN);
+                    m_srcFile.toNext(); // Consume read char
+                    return;
+                } else if (c == ')') {
+                    m_current = new pas::Token(PAS_T_PARENT_CLOSE);
+                    m_srcFile.toNext(); // Consume read char
+                    return;        
+                } else if (c == '\'') {
+                    state = READING_STRING;
+                } else if (!isWhitespace(c))
+                    m_srcFile.escalateError(std::string("Unexpected char '") + c + 
+                        std::string("'"));
+
                 break;
 
-            case READING_VALUE:
+            case READING_WORD:                
                 if (!isAlphaNum(c)) {
-                    m_current = new pas::StringValueToken(PAS_T_V_STRING, valueBuffer);
+                    m_current = new pas::StringValueToken(PAS_T_IDENTIFIER, valueBuffer);
                     return;
                 }
 
                 valueBuffer += c;
                 break;    
             
+            case READING_STRING:
+                if (c == '\'') {
+                    m_srcFile.toNext(); // The ' should not be read again
+                    m_current = new pas::StringValueToken(PAS_T_V_STRING, valueBuffer);
+                    return;
+                } else if (c == '\\') {
+                    state = READING_STRING_ESCAPED;
+                } else {
+                    valueBuffer += c;
+                }
+
+                break;
+
+            case READING_STRING_ESCAPED:
+                if (c == 'n') {
+                    valueBuffer += '\n';
+                } else if (c == 't') {
+                    valueBuffer += '\t';
+                } else if (c == 'r') {
+                    valueBuffer += '\r';
+                } else if (c == '0') {
+                    valueBuffer += '\0';
+                } else {
+                    valueBuffer += c;
+                }
+
+                state = READING_STRING;
+                break;
+
             default:
-                m_srcFile.escalateError("Internal: Unknown tokenize state");
+                m_srcFile.escalateError(std::string("Internal: Unknown tokenize state"));
                 break;
         }
 
         m_srcFile.toNext();
     }
 
-    if (state == READING_VALUE) {
+    if (state == READING_WORD) {
         m_current = new pas::StringValueToken(PAS_T_V_STRING, valueBuffer);
         return;
+    }
+
+    if (state == READING_STRING || state == READING_STRING_ESCAPED) {
+        m_srcFile.escalateError("String not closed");
     }
 
     m_current = new pas::Token(PAS_T_STREAM_END);
 }
 
 pas::Token *pas::TokenStream::getCurrent() {
+    if (!m_currentInitialized)
+        toNext();
+    
     return m_current;
 }
 

@@ -18,9 +18,11 @@ namespace pas {
         // Keywords
         PAS_T_KW_PROGRAM,    // program
         PAS_T_KW_BEGIN,      // begin
-        PAS_T_KW_END_PERIOD, // end.
+        PAS_T_KW_END, // end.
 
         // Controls
+        PAS_T_PERIOD,
+        PAS_T_SEMICOLON,
         PAS_T_PARENT_OPEN,   // (
         PAS_T_PARENT_CLOSE   // )    
     };
@@ -49,6 +51,7 @@ namespace pas {
         private:
             pas::SourceFile& m_srcFile;
             Token *m_current;
+            bool m_currentInitialized;
     
         public:
             TokenStream(pas::SourceFile& srcFile);

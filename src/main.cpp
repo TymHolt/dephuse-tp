@@ -25,7 +25,7 @@ int main(int argc, char **argv) {
             while (!tokenStream->hasEnded()) {
                 pas::Token *token = tokenStream->getCurrent();
 
-                if (token->getType() == pas::PAS_T_V_STRING) {
+                if (token->getType() == pas::PAS_T_V_STRING || token->getType() == pas::PAS_T_IDENTIFIER) {
                     pas::StringValueToken *svToken = dynamic_cast<pas::StringValueToken *>(token);
                     std::cout << svToken->getValue() << std::endl;    
                 } else {
@@ -39,7 +39,7 @@ int main(int argc, char **argv) {
             std::cout << "Source file: " << srcFileName << std::endl;
             std::cout << ex.what() << std::endl;
         } catch (...) {
-            std::cout << "Unknown exception occurre" << std::endl;
+            std::cout << "Unknown exception occurred" << std::endl;
         }
 
         delete tokenStream;

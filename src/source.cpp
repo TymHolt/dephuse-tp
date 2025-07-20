@@ -4,7 +4,7 @@
 pas::SourceFile::SourceFile(std::ifstream& srcFileStream)
     : m_srcFileStream(srcFileStream) {
         m_line = 1;
-        m_column = 0;
+        m_column = 1;
 }
 
 std::string pas::SourceFile::getPosString() {
@@ -21,6 +21,14 @@ char pas::SourceFile::getCurrent() {
 }
 
 void pas::SourceFile::toNext() {
+    char c = getCurrent();
+
+    if (c == '\n') {
+        m_line++;
+        m_column = 1;
+    } else
+        m_column++;
+
     m_srcFileStream.get();
 }
 
