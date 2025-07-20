@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include "source.hpp"
+#include "tokenize.hpp"
 
 int main(int argc, char **argv) {
     if (argc < 2) {
@@ -17,9 +18,23 @@ int main(int argc, char **argv) {
             continue;
         }
 
+        pas::SourceFile srcFile(srcFileStream);
+        pas::TokenStream *tokenStream = new pas::TokenStream(srcFile);
+
         try {
-            pas::SourceFile srcFile(srcFileStream);
-            srcFile.escalateError("Test error");
+            while (!tokenStream->hasEnded()) {
+                pas::Token *token = tokenStream->getCurrent();
+
+                if (token->getType() == pas::PAS_T_V_STRING) {
+                    pas::StringValueToken *svToken = dynamic_cast<pas::StringValueToken *>(token);
+                    std::cout << svToken->getValue() << std::endl;    
+                } else {
+                    std::cout << "Non-String token" << std::endl;
+                }
+
+                tokenStream->toNext();
+            }
+
         } catch (const std::runtime_error& ex) {
             std::cout << "Source file: " << srcFileName << std::endl;
             std::cout << ex.what() << std::endl;
@@ -27,6 +42,7 @@ int main(int argc, char **argv) {
             std::cout << "Unknown exception occurre" << std::endl;
         }
 
+        delete tokenStream;
         srcFileStream.close();
     }
 

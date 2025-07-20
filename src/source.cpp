@@ -15,3 +15,15 @@ std::string pas::SourceFile::getPosString() {
 void pas::SourceFile::escalateError(std::string msg) {
     throw std::runtime_error(std::string("ERROR ") + getPosString() + std::string(" -> ") + msg);
 }
+
+char pas::SourceFile::getCurrent() {
+    return (char) m_srcFileStream.peek();
+}
+
+void pas::SourceFile::toNext() {
+    m_srcFileStream.get();
+}
+
+bool pas::SourceFile::hasEnded() {
+    return m_srcFileStream.peek() == EOF;
+}

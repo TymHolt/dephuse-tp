@@ -17,6 +17,9 @@ namespace pas {
         public:
             SourceFile(std::ifstream& srcFileStream);
             void escalateError(std::string msg);
+            char getCurrent();
+            void toNext();
+            bool hasEnded();
     };
 
 }
