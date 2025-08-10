@@ -1,8 +1,8 @@
 #include <iostream>
 #include <fstream>
 #include "source.hpp"
-#include "tokenize.hpp"
-#include "parse.hpp"
+#include "tokenize/tokenize.hpp"
+#include "parse/parse.hpp"
 
 int main(int argc, char **argv) {
     if (argc < 2) {
@@ -21,15 +21,10 @@ int main(int argc, char **argv) {
 
         pas::SourceFile srcFile(srcFileStream);
         pas::TokenStream *tokenStream = new pas::TokenStream(srcFile);
+        pas::Parser parser(tokenStream);
 
         try {
-            /*while (!tokenStream->hasEnded()) {
-                pas::Token *token = tokenStream->getCurrent();
-                std::cout << token->getValue() << std::endl;
-                tokenStream->toNext();
-            }*/
-
-            pas::parse(tokenStream);
+            delete parser.parse();
         } catch (const std::runtime_error& ex) {
             std::cout << "Source file: " << srcFileName << std::endl;
             std::cout << ex.what() << std::endl;

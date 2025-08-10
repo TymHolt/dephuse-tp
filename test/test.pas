@@ -1,6 +1,6 @@
 program TestProg;
 begin
 
-    Writeln('Hello World')
+    Writeln('Hello World!' 'abc');
 
 end.
